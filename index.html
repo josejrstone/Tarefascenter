@@ -335,8 +335,23 @@
         }
     }
 
-    function loadData() { data = JSON.parse(localStorage.getItem('centerSportApp')); }
+    function loadData() {
+        try {
+            const savedData = localStorage.getItem('centerSportApp');
+            data = savedData ? JSON.parse(savedData) : generateFullData();
+            if (!data.tasks || !data.lastReset) throw new Error('Dados inválidos');
+        } catch (error) {
+            data = generateFullData();
+            saveLocal();
+        }
+    }
     function saveLocal() { localStorage.setItem('centerSportApp', JSON.stringify(data)); }
+
+    function escapeHTML(value) {
+        const element = document.createElement('div');
+        element.textContent = value == null ? '' : String(value);
+        return element.innerHTML;
+    }
 
     function renderTabs() {
         const container = document.getElementById('dayTabs');
@@ -409,14 +424,14 @@
                     <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask('${task.id}', this.checked)">
                     <span class="task-time">${task.time}</span>
                     ${badgeHtml}
-                    <span class="task-title" style="${task.done ? 'text-decoration: line-through;' : ''}">${task.desc}</span>
+                    <span class="task-title" style="${task.done ? 'text-decoration: line-through;' : ''}">${escapeHTML(task.desc)}</span>
                     <div class="task-actions">
                         <button class="btn-icon edit-btn" onclick="openModal('${task.id}')" title="Editar">✏️</button>
                         <button class="btn-icon delete-btn" onclick="deleteTask('${task.id}')" title="Excluir">🗑️</button>
                     </div>
                 </div>
                 <input type="text" class="task-obs" placeholder="Motivo/Observação caso não tenha feito..." 
-                       value="${task.obs || ''}" onchange="updateObs('${task.id}', this.value)" 
+                       value="${escapeHTML(task.obs || '')}" onchange="updateObs('${task.id}', this.value)"
                        onblur="this.setAttribute('value', this.value)"> 
             `;
             container.appendChild(card);
@@ -550,6 +565,7 @@
     let notifiedTasks = new Set();
     function startNotificationEngine() {
         setInterval(() => {
+            if (!('Notification' in window)) return;
             if (Notification.permission !== "granted") return;
             let now = new Date();
             let todayStr = weekDaysMap[now.getDay()];
