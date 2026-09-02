@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Tarefas - Center Sport</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --danger: #f43f5e; /* Vermelho mais moderno e suave */
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --border-radius: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+
+        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; padding-bottom: 40px; }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; background: white; padding: 20px; border-radius: var(--border-radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        h1 { font-size: 1.6rem; color: var(--primary); font-weight: 700; }
+
+        .btn { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.875rem; transition: all 0.2s; color: white; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background-color: var(--primary); }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-success { background-color: var(--success); }
+        .btn-outline { background-color: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { background-color: #f1f5f9; }
+
+        /* Botões de ícones minimalistas */
+        .btn-icon { background: transparent; border: none; cursor: pointer; padding: 8px; border-radius: 6px; font-size: 1.1rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; opacity: 0.7; }
+        .btn-icon:hover { opacity: 1; }
+        .btn-icon.edit-btn:hover { background: #e0e7ff; }
+        .btn-icon.delete-btn { filter: grayscale(100%); } /* Apaga o vermelho forte do emoji */
+        .btn-icon.delete-btn:hover { background: #ffe4e6; filter: grayscale(0%); }
+
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        .tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .tab { padding: 10px 20px; background: white; border: 1px solid var(--border); border-radius: var(--border-radius); cursor: pointer; white-space: nowrap; font-weight: 600; color: var(--text-muted); transition: 0.2s; }
+        .tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .sub-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .sub-tab { padding: 8px 18px; background: white; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); transition: 0.2s; }
+        .sub-tab.active { border-color: var(--primary); color: var(--primary); font-weight: 700; background: #eff6ff; }
+
+        .task-list { display: flex; flex-direction: column; gap: 12px; }
+        
+        .task-card { background: var(--card-bg); padding: 16px; border-radius: var(--border-radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 10px; border-left: 5px solid var(--primary); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); transition: 0.3s; }
+        
+        /* Estado Concluído */
+        .task-card.done { border-left-color: var(--success); opacity: 0.6; background: #f8fafc; }
+        
+        /* Estado Atrasado (Overdue) */
+        .task-card.overdue { border-left-color: var(--danger); background-color: #fff1f2; }
+
+        .task-header { display: flex; align-items: center; gap: 12px; }
+        .task-time { font-weight: 700; color: var(--primary); font-size: 1rem; min-width: 50px; }
+        .task-title { flex-grow: 1; font-weight: 500; font-size: 0.95rem; }
+        
+        /* Etiqueta de vendedoras para a aba Todos */
+        .emp-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; font-weight: 700; white-space: nowrap; }
+        .emp-badge.Deborah { background: #dbeafe; color: #1e40af; }
+        .emp-badge.Kety { background: #fce7f3; color: #9d174d; }
+        .emp-badge.Gabriela { background: #fef3c7; color: #b45309; }
+        .emp-badge.Ana { background: #dcfce7; color: #166534; }
+        
+        .task-actions { display: flex; gap: 5px; align-items: center; margin-left: auto; }
+        
+        /* Checkbox em destaque no início */
+        input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; accent-color: var(--success); transform: scale(1.1); }
+        
+        .task-obs { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.875rem; background: #fafafa; transition: 0.2s; }
+        .task-obs:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 1000; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 25px; border-radius: var(--border-radius); width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .modal-content h2 { margin-bottom: 15px; font-size: 1.25rem; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        /* Formatação Otimizada para Impressão A4 */
+        @media print {
+            @page { size: A4 portrait; margin: 10mm; }
+            body { background: white; padding: 0; font-size: 11pt; color: black; }
+            .controls, .modal, .tabs, .sub-tabs, .btn, .task-actions { display: none !important; }
+            header { padding: 0; box-shadow: none; margin-bottom: 15px; }
+            header p { display: none; }
+            .container { max-width: 100%; padding: 0; }
+            .task-list { gap: 0; }
+            .task-card { 
+                flex-direction: row; 
+                flex-wrap: wrap;
+                box-shadow: none; 
+                border: none !important; 
+                border-bottom: 1px solid #ccc !important; 
+                padding: 6px 0 !important; 
+                border-radius: 0;
+                background: white !important;
+                align-items: center;
+                opacity: 1 !important;
+            }
+            .task-header { width: 100%; align-items: baseline; gap: 8px; }
+            input[type="checkbox"] { width: 14px; height: 14px; transform: scale(1); margin-right: 5px; }
+            .task-time { font-size: 10pt; width: 45px; color: black; }
+            .task-title { font-size: 11pt; font-weight: 400; }
+            .emp-badge { border: 1px solid #999; padding: 1px 4px; font-size: 9pt; background: white !important; color: black !important; border-radius: 4px; margin-right: 5px; }
+            .task-obs { 
+                border: none; 
+                background: transparent; 
+                padding: 0; 
+                margin: 4px 0 0 25px; 
+                width: calc(100% - 25px);
+                font-size: 10pt;
+                font-style: italic;
+                color: #444;
+            }
+            .task-obs::placeholder { color: transparent; } /* Esconde o placeholder na impressão */
+        }
+
+        @media (max-width: 640px) {
+            header { flex-direction: column; align-items: flex-start; }
+            .controls { width: 100%; justify-content: space-between; }
+            .task-header { flex-wrap: wrap; }
+            .task-actions { width: 100%; justify-content: flex-end; margin-top: 5px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>Center Sport - Gestão Diária</h1>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Acompanhamento de rotina das vendedoras</p>
+        </div>
+        <div class="controls">
+            <button class="btn btn-outline" onclick="requestNotificationPermission()" title="Ativar Alertas">🔔</button>
+            <button class="btn btn-primary" onclick="openModal()">+ Tarefa</button>
+            <button class="btn btn-outline" onclick="exportJSON()" title="Salvar Backup">💾</button>
+            <button class="btn btn-outline" onclick="window.print()">🖨️ Imprimir A4</button>
+        </div>
+    </header>
+
+    <div class="tabs" id="dayTabs"></div>
+    <div class="sub-tabs" id="empTabs"></div>
+
+    <div id="printArea">
+        <h2 id="currentViewTitle" style="margin-bottom: 15px; font-size: 1.2rem; color: var(--text-main);"></h2>
+        <div class="task-list" id="taskList"></div>
+    </div>
+</div>
+
+<!-- Modal Adicionar/Editar -->
+<div class="modal" id="taskModal">
+    <div class="modal-content">
+        <h2 id="modalTitle">Adicionar Tarefa</h2>
+        <input type="hidden" id="taskId">
+        
+        <div class="form-group">
+            <label>Dia da Semana</label>
+            <select id="taskDay">
+                <option value="Segunda">Segunda-feira</option>
+                <option value="Terça">Terça-feira</option>
+                <option value="Quarta">Quarta-feira</option>
+                <option value="Quinta">Quinta-feira</option>
+                <option value="Sexta">Sexta-feira</option>
+                <option value="Sábado">Sábado</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Vendedora</label>
+            <select id="taskEmp">
+                <option value="Deborah">Deborah</option>
+                <option value="Kety">Kety</option>
+                <option value="Gabriela">Gabriela</option>
+                <option value="Ana">Ana</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Horário</label>
+            <input type="time" id="taskTime" required>
+        </div>
+
+        <div class="form-group">
+            <label>Descrição da Tarefa</label>
+            <textarea id="taskDesc" rows="3" required></textarea>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveTask()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const employeesData = ['Deborah', 'Kety', 'Gabriela', 'Ana'];
+    const employeesTabs = ['Todos', 'Deborah', 'Kety', 'Gabriela', 'Ana'];
+    
+    const weekDaysMap = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    
+    // Inicia automaticamente no dia atual
+    let todayIndex = new Date().getDay();
+    let currentDay = weekDaysMap[todayIndex];
+    if (currentDay === 'Domingo') currentDay = 'Segunda'; // Se for domingo, abre na segunda
+    
+    let currentEmp = 'Todos'; // Inicia na visão geral
+    let data = {};
+
+    function generateFullData() {
+        let base = {};
+        days.forEach(day => {
+            base[day] = {};
+            employeesData.forEach(emp => { base[day][emp] = []; });
+        });
+
+        const socialPosts = {
+            'Segunda': { Deborah: 'Postar Status do dia: Tênis esportivo masc/fem, Roupas Fitness, Bonés, Bags, Viseiras, Óculos de sol e Acessórios.', Kety: 'Apoio no atendimento e vendas.' },
+            'Terça': { Deborah: 'Postar Status do dia (com Ana): Tênis casual fem/masc, Botas fem/masc e Bolsas fem.', Ana: 'Postar Status do dia (com Deborah): Tênis casual fem/masc, Botas fem/masc e Bolsas fem.' },
+            'Quarta': { Gabriela: 'Postar Status do dia (com Kety): Rasteiras, Bolsas pequenas, Chinelos fem/masc, Óculos de sol e Bonés.', Kety: 'Postar Status do dia (com Gabi): Rasteiras, Bolsas pequenas, Chinelos fem/masc, Óculos de sol e Bonés.' },
+            'Quinta': { Kety: 'Postar Status do dia: Bolsas arrumadas festa, Sandálias de salto e sapatos, Sapatênis masc, Sapatos masc e Cintos.' },
+            'Sexta': { Deborah: 'Postar Status do dia (com Ana): Tênis casual fem/masc, Botas fem/masc, Bolsas fem e Cintos.', Ana: 'Postar Status do dia (com Deborah): Tênis casual fem/masc, Botas fem/masc, Bolsas fem e Cintos.' },
+            'Sábado': { Gabriela: 'Postar Status do dia (com Kety): Rasteiras, Bolsas pequenas, Chinelos fem/masc, Óculos de sol e Bonés.', Kety: 'Postar Status do dia (com Gabi): Rasteiras, Bolsas pequenas, Chinelos fem/masc, Óculos de sol e Bonés.' }
+        };
+
+        days.filter(d => d !== 'Sábado').forEach(day => {
+            base[day]['Deborah'] = [
+                { id: Math.random(), time: '08:30', desc: 'Assinar o ponto, conferir visual (cabelo, maquiagem, uniforme) e metas.', done: false, obs: '' },
+                { id: Math.random(), time: '08:45', desc: socialPosts[day].Deborah || 'Postar Status do dia.', done: false, obs: '' },
+                { id: Math.random(), time: '09:15', desc: day === 'Segunda' ? 'FAXINA da seção + Repor calçados e retirar UPS.' : 'Manter seção limpa/organizada + Repor calçados e retirar UPS.', done: false, obs: '' },
+                { id: Math.random(), time: '10:00', desc: 'Verificar produtos sem foto, organizar celular e responder clientes.', done: false, obs: '' },
+                { id: Math.random(), time: '10:30', desc: '🕒 INTERVALO DE ALMOÇO (10:30h - 11:30h)', done: false, obs: '' },
+                { id: Math.random(), time: '11:30', desc: 'Revisar caderno "Avisar quando chegar" e cobrar condicionais.', done: false, obs: '' },
+                { id: Math.random(), time: '13:00', desc: 'Atendimento presencial e verificação de reservas.', done: false, obs: '' },
+                { id: Math.random(), time: '14:30', desc: '☕ CAFÉ DA TARDE - Lavar xícara/talheres imediatamente!', done: false, obs: '' },
+                { id: Math.random(), time: '15:00', desc: 'Estudar produtos da loja difíceis de vender.', done: false, obs: '' },
+                { id: Math.random(), time: '17:15', desc: 'Recolher produtos dos puffs e balcões.', done: false, obs: '' },
+                { id: Math.random(), time: '17:45', desc: 'Conferir vitrine e organizar para o fechamento.', done: false, obs: '' }
+            ];
+
+            base[day]['Kety'] = [
+                { id: Math.random(), time: '08:30', desc: 'Assinar o ponto, conferir visual e acompanhar metas.', done: false, obs: '' },
+                { id: Math.random(), time: '08:45', desc: socialPosts[day].Kety || 'Apoio na organização e postagem de status.', done: false, obs: '' },
+                { id: Math.random(), time: '09:15', desc: day === 'Terça' ? 'FAXINA da seção + Repor calçados e retirar UPS.' : 'Manter seção limpa/organizada + Repor calçados e retirar UPS.', done: false, obs: '' },
+                { id: Math.random(), time: '10:30', desc: 'Foco total na loja/atendimento enquanto Deborah está no almoço.', done: false, obs: '' },
+                { id: Math.random(), time: '11:30', desc: 'Verificar produtos sem foto, organizar celular e responder clientes.', done: false, obs: '' },
+                { id: Math.random(), time: '12:45', desc: '🕒 INTERVALO DE ALMOÇO (12:45h - 13:45h)', done: false, obs: '' },
+                { id: Math.random(), time: '13:45', desc: 'Revisar caderno "Avisar quando chegar" e cobrar condicionais.', done: false, obs: '' },
+                { id: Math.random(), time: '15:00', desc: 'Pesquisar produtos difíceis de vender e focar no salão.', done: false, obs: '' },
+                { id: Math.random(), time: '17:00', desc: '☕ CAFÉ DA TARDE - Lavar xícara/talheres imediatamente!', done: false, obs: '' },
+                { id: Math.random(), time: '17:15', desc: 'Recolher produtos dos puffs e balcões.', done: false, obs: '' },
+                { id: Math.random(), time: '17:45', desc: 'Conferir vitrine e organizar para fechamento.', done: false, obs: '' }
+            ];
+
+            base[day]['Gabriela'] = [
+                { id: Math.random(), time: '12:45', desc: 'Assinar o ponto, conferir visual e metas diárias.', done: false, obs: '' },
+                { id: Math.random(), time: '13:00', desc: socialPosts[day].Gabriela || 'Verificar produtos novos para etiquetar (Etiquetou, Guardou!).', done: false, obs: '' },
+                { id: Math.random(), time: '14:00', desc: 'Atendimento a clientes e responder WhatsApp.', done: false, obs: '' },
+                { id: Math.random(), time: '15:30', desc: '☕ CAFÉ DA TARDE - Lavar xícara/talheres imediatamente!', done: false, obs: '' },
+                { id: Math.random(), time: '16:00', desc: 'Mandar mensagens para clientes e verificar reservas.', done: false, obs: '' },
+                { id: Math.random(), time: '17:15', desc: 'Varrer a loja inteira e jogar o lixo fora.', done: false, obs: '' },
+                { id: Math.random(), time: '17:45', desc: 'Apoio na conferência e organização final da loja.', done: false, obs: '' }
+            ];
+
+            base[day]['Ana'] = [
+                { id: Math.random(), time: '12:45', desc: 'Assinar o ponto, conferir visual e metas diárias.', done: false, obs: '' },
+                { id: Math.random(), time: '13:00', desc: socialPosts[day].Ana || 'Verificar produtos novos para etiquetar (Etiquetou, Guardou!).', done: false, obs: '' },
+                { id: Math.random(), time: '14:00', desc: 'Atendimento a clientes e suporte de loja.', done: false, obs: '' },
+                { id: Math.random(), time: '16:00', desc: '☕ CAFÉ DA TARDE - Lavar xícara/talheres imediatamente!', done: false, obs: '' },
+                { id: Math.random(), time: '16:30', desc: 'Pesquisar sobre produtos com venda difícil.', done: false, obs: '' },
+                { id: Math.random(), time: '17:15', desc: 'Varrer a loja e auxiliar no descarte do lixo.', done: false, obs: '' },
+                { id: Math.random(), time: '17:45', desc: 'Organização da cozinha/copa e apoio final.', done: false, obs: '' }
+            ];
+        });
+
+        employeesData.forEach(emp => {
+            base['Sábado'][emp] = [
+                { id: Math.random(), time: '08:00', desc: 'Assinar ponto e preparar loja.', done: false, obs: '' },
+                { id: Math.random(), time: '08:15', desc: (emp === 'Gabriela' || emp === 'Kety') ? socialPosts['Sábado'][emp] : 'Garantir seções impecáveis e calçados repostos.', done: false, obs: '' },
+                { id: Math.random(), time: '09:30', desc: 'Atendimento focado em vendas e WhatsApp.', done: false, obs: '' },
+                { id: Math.random(), time: '11:30', desc: 'Organizar puffs e recolher calçados.', done: false, obs: '' },
+                { id: Math.random(), time: '11:45', desc: emp === 'Gabriela' || emp === 'Ana' ? 'Varrer loja e recolher lixo.' : 'Conferir vitrine e fechar seções.', done: false, obs: '' },
+                { id: Math.random(), time: '12:00', desc: 'Fechamento da loja.', done: false, obs: '' }
+            ];
+        });
+
+        return { lastReset: new Date().toISOString(), tasks: base };
+    }
+
+    function init() {
+        checkSundayReset();
+        loadData();
+        renderTabs();
+        renderSubTabs();
+        renderTasks();
+        startNotificationEngine();
+        
+        // Loop a cada minuto para atualizar os cards atrasados visualmente
+        setInterval(checkOverdueUI, 60000); 
+    }
+
+    function checkSundayReset() {
+        let today = new Date();
+        let savedData = localStorage.getItem('centerSportApp');
+        
+        if (!savedData) {
+            data = generateFullData();
+            saveLocal();
+            return;
+        }
+
+        data = JSON.parse(savedData);
+        let lastResetDate = new Date(data.lastReset);
+
+        if (today.getDay() === 0 && today.toDateString() !== lastResetDate.toDateString()) {
+            days.forEach(d => employeesData.forEach(e => {
+                data.tasks[d][e].forEach(t => { t.done = false; t.obs = ''; });
+            }));
+            data.lastReset = new Date().toISOString();
+            saveLocal();
+        }
+    }
+
+    function loadData() { data = JSON.parse(localStorage.getItem('centerSportApp')); }
+    function saveLocal() { localStorage.setItem('centerSportApp', JSON.stringify(data)); }
+
+    function renderTabs() {
+        const container = document.getElementById('dayTabs');
+        container.innerHTML = '';
+        days.forEach(day => {
+            let div = document.createElement('div');
+            div.className = `tab ${day === currentDay ? 'active' : ''}`;
+            div.innerText = day === 'Sábado' ? 'Sábado' : day;
+            div.onclick = () => { currentDay = day; renderTabs(); renderTasks(); };
+            container.appendChild(div);
+        });
+    }
+
+    function renderSubTabs() {
+        const container = document.getElementById('empTabs');
+        container.innerHTML = '';
+        employeesTabs.forEach(emp => {
+            let div = document.createElement('div');
+            div.className = `sub-tab ${emp === currentEmp ? 'active' : ''}`;
+            div.innerText = emp;
+            div.onclick = () => { currentEmp = emp; renderSubTabs(); renderTasks(); };
+            container.appendChild(div);
+        });
+    }
+
+    function renderTasks() {
+        const container = document.getElementById('taskList');
+        const title = document.getElementById('currentViewTitle');
+        container.innerHTML = '';
+        
+        title.innerText = currentEmp === 'Todos' 
+            ? `Rotina Geral — ${currentDay}${currentDay === 'Sábado' ? '' : '-feira'}` 
+            : `Rotina de ${currentEmp} — ${currentDay}${currentDay === 'Sábado' ? '' : '-feira'}`;
+
+        let tasksToRender = [];
+
+        // Monta a lista baseada na aba selecionada
+        if (currentEmp === 'Todos') {
+            employeesData.forEach(emp => {
+                data.tasks[currentDay][emp].forEach(t => {
+                    tasksToRender.push({ ...t, empName: emp });
+                });
+            });
+        } else {
+            data.tasks[currentDay][currentEmp].forEach(t => {
+                tasksToRender.push({ ...t, empName: currentEmp });
+            });
+        }
+
+        // Ordena tudo por horário
+        tasksToRender.sort((a, b) => a.time.localeCompare(b.time));
+
+        if(tasksToRender.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">Nenhuma tarefa encontrada.</p>';
+            return;
+        }
+
+        tasksToRender.forEach(task => {
+            let card = document.createElement('div');
+            // Salvamos atributos para facilitar a verificação de atrasos no CSS/JS
+            card.className = `task-card ${task.done ? 'done' : ''}`;
+            card.setAttribute('data-time', task.time);
+            card.setAttribute('data-done', task.done);
+            
+            // Badge só aparece na aba Todos
+            const badgeHtml = currentEmp === 'Todos' ? `<span class="emp-badge ${task.empName}">${task.empName}</span>` : '';
+
+            card.innerHTML = `
+                <div class="task-header">
+                    <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask('${task.id}', this.checked)">
+                    <span class="task-time">${task.time}</span>
+                    ${badgeHtml}
+                    <span class="task-title" style="${task.done ? 'text-decoration: line-through;' : ''}">${task.desc}</span>
+                    <div class="task-actions">
+                        <button class="btn-icon edit-btn" onclick="openModal('${task.id}')" title="Editar">✏️</button>
+                        <button class="btn-icon delete-btn" onclick="deleteTask('${task.id}')" title="Excluir">🗑️</button>
+                    </div>
+                </div>
+                <input type="text" class="task-obs" placeholder="Motivo/Observação caso não tenha feito..." 
+                       value="${task.obs || ''}" onchange="updateObs('${task.id}', this.value)" 
+                       onblur="this.setAttribute('value', this.value)"> 
+            `;
+            container.appendChild(card);
+        });
+
+        checkOverdueUI(); // Checa atrasos logo após renderizar
+    }
+
+    // Função que pinta o card de vermelho se passou da hora
+    function checkOverdueUI() {
+        let todayStr = weekDaysMap[new Date().getDay()];
+        if (currentDay !== todayStr) return; // Só alerta atrasos se estiver olhando o dia de hoje
+
+        let now = new Date();
+        let currentTimeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+        document.querySelectorAll('.task-card').forEach(card => {
+            let timeStr = card.getAttribute('data-time');
+            let isDone = card.getAttribute('data-done') === 'true';
+
+            if (!isDone && timeStr < currentTimeStr) {
+                card.classList.add('overdue');
+            } else {
+                card.classList.remove('overdue');
+            }
+        });
+    }
+
+    function toggleTask(id, isDone) {
+        let task = findTask(id);
+        if(task) { task.done = isDone; saveLocal(); renderTasks(); }
+    }
+
+    function updateObs(id, val) {
+        let task = findTask(id);
+        if(task) { task.obs = val; saveLocal(); }
+    }
+
+    function findTask(id) {
+        for(let d of days) {
+            for(let e of employeesData) {
+                let found = data.tasks[d][e].find(t => t.id == id);
+                if(found) return found;
+            }
+        }
+        return null;
+    }
+
+    function deleteTask(id) {
+        if(confirm('Deseja realmente apagar esta tarefa?')) {
+            for(let d of days) {
+                for(let e of employeesData) {
+                    data.tasks[d][e] = data.tasks[d][e].filter(t => t.id != id);
+                }
+            }
+            saveLocal();
+            renderTasks();
+        }
+    }
+
+    const modal = document.getElementById('taskModal');
+    
+    function openModal(id = null) {
+        modal.classList.add('active');
+        if(id) {
+            document.getElementById('modalTitle').innerText = 'Editar Tarefa';
+            let t = findTask(id);
+            document.getElementById('taskId').value = id;
+            document.getElementById('taskDay').value = getTaskDay(id);
+            document.getElementById('taskEmp').value = getTaskEmp(id);
+            document.getElementById('taskTime').value = t.time;
+            document.getElementById('taskDesc').value = t.desc;
+        } else {
+            document.getElementById('modalTitle').innerText = 'Nova Tarefa';
+            document.getElementById('taskId').value = '';
+            document.getElementById('taskDay').value = currentDay;
+            document.getElementById('taskEmp').value = currentEmp !== 'Todos' ? currentEmp : 'Deborah';
+            document.getElementById('taskTime').value = '';
+            document.getElementById('taskDesc').value = '';
+        }
+    }
+
+    function closeModal() { modal.classList.remove('active'); }
+
+    function getTaskDay(id) { for(let d of days) { for(let e of employeesData) { if(data.tasks[d][e].find(t=>t.id==id)) return d; } } }
+    function getTaskEmp(id) { for(let d of days) { for(let e of employeesData) { if(data.tasks[d][e].find(t=>t.id==id)) return e; } } }
+
+    function saveTask() {
+        let id = document.getElementById('taskId').value;
+        let day = document.getElementById('taskDay').value;
+        let emp = document.getElementById('taskEmp').value;
+        let time = document.getElementById('taskTime').value;
+        let desc = document.getElementById('taskDesc').value;
+
+        if(!time || !desc) { alert("Preencha o horário e a descrição!"); return; }
+
+        if(id) {
+            let oldDay = getTaskDay(id);
+            let oldEmp = getTaskEmp(id);
+            let taskObj = data.tasks[oldDay][oldEmp].find(t => t.id == id);
+            data.tasks[oldDay][oldEmp] = data.tasks[oldDay][oldEmp].filter(t => t.id != id);
+            
+            taskObj.time = time;
+            taskObj.desc = desc;
+            data.tasks[day][emp].push(taskObj);
+        } else {
+            data.tasks[day][emp].push({
+                id: Math.random(),
+                time: time,
+                desc: desc,
+                done: false,
+                obs: ''
+            });
+        }
+        
+        saveLocal();
+        closeModal();
+        if(day === currentDay && (emp === currentEmp || currentEmp === 'Todos')) renderTasks();
+    }
+
+    function requestNotificationPermission() {
+        if (!("Notification" in window)) {
+            alert("Navegador não suporta notificações.");
+        } else {
+            Notification.requestPermission().then(p => {
+                if (p === "granted") alert("Notificações ativadas com sucesso!");
+            });
+        }
+    }
+
+    let notifiedTasks = new Set();
+    function startNotificationEngine() {
+        setInterval(() => {
+            if (Notification.permission !== "granted") return;
+            let now = new Date();
+            let todayStr = weekDaysMap[now.getDay()];
+            if(todayStr === 'Domingo') return;
+
+            let timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            employeesData.forEach(emp => {
+                data.tasks[todayStr][emp].forEach(task => {
+                    if(task.time === timeStr && !task.done && !notifiedTasks.has(task.id)) {
+                        new Notification(`Tarefa Pendente: ${emp}`, {
+                            body: `${task.time} - ${task.desc}`
+                        });
+                        notifiedTasks.add(task.id);
+                    }
+                });
+            });
+        }, 30000);
+    }
+
+    function exportJSON() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "tarefas_center_sport.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    init();
+</script>
+</body>
+</html>
